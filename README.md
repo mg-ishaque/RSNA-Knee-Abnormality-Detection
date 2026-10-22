@@ -1,61 +1,76 @@
-# RSNA-Knee-Abnormality-Detection
-Create a model that can detect knee abnormalities based on multimodal imaging data
+# RSNA Knee Abnormality Detection
 
-## Description
-The knee is the most commonly injured and imaged joint in the body. Osteoarthritis alone affects an estimated 654 million people worldwide, while acute knee injuries account for 15 to 40 percent of all sports-related trauma. MRIs show clinicians ligaments, cartilage, menisci, and bone in detail, without exposing patients to radiation.
+Kaggle notebook project for **knee MRI abnormality prediction**, using pretrained deep-learning models, DICOM preprocessing, ensemble inference, and submission validation.
 
-Reading those scans isn’t always straightforward. ACL and MCL tears, meniscal damage, cartilage loss, fractures, and other abnormalities can be subtle, and radiologists don’t always interpret them the same way. Access to musculoskeletal radiologists is also limited, especially outside major medical centers, leading to delays and inconsistent diagnoses.
+## Project overview
 
-In this competition, you will develop multimodal machine learning models to detect twelve clinically important knee abnormalities. You'll work with the first RSNA AI Challenge dataset that pairs every imaging study with its original radiology report, enabling your models to learn from both visual scans and written diagnostic text.
+This repository documents an inference-oriented workflow for the [RSNA Knee Abnormality Detection competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection). It brings together ideas from several public Kaggle notebooks, with configurable inference profiles and checks intended to catch missing data, incompatible checkpoints, and invalid submissions.
 
-High-performing models can act as robust decision support tools, delivering the accuracy, consistency, and speed needed to elevate expert-level knee MRI interpretation and improve care across disparate clinic settings.
+### Features
 
-## Dataset Description
-This dataset contains knee MRI studies annotated for twelve common findings: ligament and meniscus injuries, three compartments of osteoarthritis, joint effusion, synovitis, Baker's cyst, bone contusion, and fracture. Each study comprises a collection of individual MRI sequences from a single scanning session formatted as DICOM series. Your task is to predict the per-study probability of each of the twelve findings.
+- MRI series loading and preprocessing from DICOM images using `pydicom`.
+- Pretrained-model inference on Kaggle GPUs, with offline execution.
+- Configurable profiles: `r7_base`, `r7_multires`, and `versia_multiscale`.
+- Ensemble prediction and submission-format validation.
+- Transfer-syntax and pixel-decoding checks before inference.
+- Runtime logs and provenance/validation receipts.
 
-Studies come from a diverse international mix of imaging sites and span a wide range of scanners, protocols, and populations. Only a small subset of training studies carry per-condition labels. We also provide the original text of the radiology report from which you may wish to derive the labels for the remaining studies.
+## Notebook
 
-Files
-train.csv One row per training study.
+Main notebook: `rsna-knee-unified-decoder-fixed.ipynb` (rename the uploaded notebook to this filename if needed).
 
-StudyInstanceUID - unique identifier for the study; matches the folder name under train_series/.
-Report - the free-text radiology report. May be in any of several languages, depending on the reporting institution.
-Twelve binary labels:
+The notebook includes multiple alternative pipelines; **only the selected `PROFILE` is run**.
 
-ACL - anterior cruciate ligament injury (0/1).
-MCL - medial collateral ligament injury (0/1).
-Medial Meniscus - medial meniscus tear (0/1).
-Lateral Meniscus - lateral meniscus tear (0/1).
-Medial OA - osteoarthritis of the medial tibiofemoral compartment (0/1).
-Lateral OA - osteoarthritis of the lateral tibiofemoral compartment (0/1).
-PF OA - patellofemoral osteoarthritis (0/1).
-Effusion - joint effusion / excess fluid (0/1).
-Synovitis - inflammation of the joint lining (0/1).
-Baker's - Baker's cyst (0/1).
-Contusion - bone contusion / bone bruise (0/1).
-Fracture - fracture (0/1).
-train_series.csv One row per training series. Each series is a single MRI acquisition and each study comprises several series.
+| Profile | Description |
+| --- | --- |
+| `r7_base` | Raptor-384 and R7 prediction blend; skips the optional 224 stage. |
+| `r7_multires` | Raptor-384, 224-view inference, and R7 blend. |
+| `versia_multiscale` | Separate multiscale ensemble path, not an additional blend with R7. |
 
-StudyInstanceUID - study this series belongs to.
-SeriesInstanceUID - unique identifier for the series; matches the folder name under train_series/<StudyInstanceUID>/.
-Fluid_Sensitive - 1 if the sequence emphasizes fluid signal (T2, PD, STIR, and similar), 0 otherwise.
-Fat_Suppression - 1 if the sequence applies fat suppression, 0 otherwise. Note that although Fluid_Sensitive and Fat_Suppression are often correlated, as observed in the training set, they are not necessarily equivalent for every case.
-Anatomical_Plane - imaging plane: Sagittal, Coronal, or Axial.
-train_series/ Training DICOMs, organized as train_series/<StudyInstanceUID>/<SeriesInstanceUID>/<SOPInstanceUID>.dcm. Each .dcm is a single image slice. Series typically contain 20–45 slices (median 30), with a long tail out to a few hundred.
+The multiresolution notebook describes a rank-based ensemble of the Raptor and R7 outputs. Exact weights and processing details are documented in the notebook and should be checked before changing a profile.
 
-test.csv Example test file with three study IDs from the public test set. During scoring, this example data will be replaced with the actual test data. There are about 1300 studies in the test set. The Report field will not be provided at the testing stage.
+## Running on Kaggle
 
-StudyInstanceUID - unique identifier for a test study.
-test_series.csv Same schema as train_series.csv, for the example test studies. Replaced with the real test-series descriptors during scoring.
+1. Open [Kaggle Notebooks](https://www.kaggle.com/code) and import the `.ipynb` file.
+2. Attach the **RSNA Knee Abnormality Detection** competition dataset.
+3. Attach the **specific pretrained checkpoint datasets required by your selected profile**. The notebook performs checkpoint/path verification; model weights are not included in this repository.
+4. Enable a supported Kaggle GPU (the workflow has been configured for T4 GPUs).
+5. Keep **Internet disabled** for the offline inference run.
+6. Review the configuration cell, including `PROFILE`, runtime budget, and failure thresholds.
+7. Run the notebook and inspect its logs and validation output.
+8. Verify that `/kaggle/working/submission.csv` exists and matches the competition's required submission format before submitting.
 
-test_series/ Example test DICOMs, same layout as train_series/. Replaced with the real test DICOMs during scoring.
+### DICOM decoder note
 
-sample_submission.csv A valid submission with all label columns set to 0.5.
+A Kaggle test decoded an image with transfer syntax `1.2.840.10008.1.2.1` (Explicit VR Little Endian) using `pydicom`, and 15 sampled test series had that same uncompressed syntax. This does **not** prove that every DICOM file uses that syntax. The corrected preflight tests observed transfer syntaxes and example pixel decoding rather than requiring JPEG plugin installation unconditionally. Compressed images may still need compatible decoder packages.
 
-Dataset Distribution Notice
-Although efforts have been made to ensure each abnormality is represented in each dataset, the prevalence of abnormalities is not guaranteed to be the same across the training, public leaderboard, and final evaluation datasets.
+## Suggested repository structure
 
-DICOM Notes
-Intensities, orientations, and resolutions vary across series and studies. Series come in a mix of transfer syntaxes (uncompressed Explicit VR Little Endian, JPEG Lossless, JPEG 2000, Implicit VR Little Endian). Every DICOM has been stripped to an allowlisted set of 86 metadata tags.
+```text
+rsna-knee-abnormality-detection/
+├── README.md
+├── rsna-knee-unified-decoder-fixed.ipynb
+└── .gitignore
+```
 
-DATASET LINK: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/data
+Keep downloaded competition images, private labels, model checkpoints, logs, and generated submissions out of version control unless their respective licenses and competition rules explicitly allow redistribution.
+
+## Technologies
+
+Python, Jupyter Notebook, Kaggle, PyTorch, pandas, NumPy, pydicom, and deep-learning model components used by the selected notebook profile.
+
+## Reproducibility and limitations
+
+- Checkpoint datasets and Kaggle input mounts must be supplied separately.
+- The workflow is designed for **inference**, not end-to-end training from scratch.
+- A passing decoder preflight does not guarantee model loading, inference, or a valid submission.
+- Reported scores or leaderboard rankings from upstream notebook titles are **not** results claimed for this repository.
+- Predictions are for a research competition, **not clinical diagnosis**.
+
+## Acknowledgements
+
+The unified notebook draws on work from multiple Kaggle contributors, including **nartaa**, **heliosli**, and **dreaddevelopment**, and incorporates ideas from a separate Versia multiscale pipeline. Refer to the notebook's *Credits and required acknowledgement* section for the full source-specific attributions, research data acknowledgements, and upstream links.
+
+Competition data: [RSNA Knee Abnormality Detection](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
+
+**Licensing:** Before adding an open-source license, verify permissions for any adapted notebook code, pretrained checkpoints, and dataset-derived materials. No permission to redistribute third-party assets is implied by this README.
