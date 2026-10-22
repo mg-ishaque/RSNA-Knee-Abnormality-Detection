@@ -17,7 +17,7 @@ This repository documents an inference-oriented workflow for the [RSNA Knee Abno
 
 ## Notebook
 
-Main notebook: `rsna-knee-unified-decoder-fixed.ipynb` (rename the uploaded notebook to this filename if needed).
+Main notebook: `rsna-knee-unified(2).ipynb`.
 
 The notebook includes multiple alternative pipelines; **only the selected `PROFILE` is run**.
 
