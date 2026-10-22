@@ -2,8 +2,6 @@
 
 Kaggle notebook project for **knee MRI abnormality prediction**, using pretrained deep-learning models, DICOM preprocessing, ensemble inference, and submission validation.
 
-> **Status:** Work in progress. The unified notebook has undergone decoder-preflight fixes; a successful end-to-end Kaggle submission and leaderboard score have **not** been verified here.
-
 ## Project overview
 
 This repository documents an inference-oriented workflow for the [RSNA Knee Abnormality Detection competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection). It brings together ideas from several public Kaggle notebooks, with configurable inference profiles and checks intended to catch missing data, incompatible checkpoints, and invalid submissions.
